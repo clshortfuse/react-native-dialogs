@@ -8,6 +8,7 @@ import android.view.View;
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.GravityEnum;
 import com.afollestad.materialdialogs.MaterialDialog;
+import com.afollestad.materialdialogs.StackingBehavior;
 import com.afollestad.materialdialogs.simplelist.MaterialSimpleListAdapter;
 import com.afollestad.materialdialogs.simplelist.MaterialSimpleListItem;
 import com.facebook.react.bridge.Callback;
@@ -49,8 +50,8 @@ public class DialogAndroid extends ReactContextBaseJavaModule {
                     builder.content(options.getString("content"));
                     break;
                 case "positiveText":
-                     builder.positiveText(options.getString("positiveText"));
-                     break;
+                    builder.positiveText(options.getString("positiveText"));
+                    break;
                 case "positiveColor":
                     builder.positiveColor(Color.parseColor(options.getString("positiveColor")));
                     break;
@@ -76,6 +77,24 @@ public class DialogAndroid extends ReactContextBaseJavaModule {
                     break;
                 case "autoDismiss":
                     builder.autoDismiss(options.getBoolean("autoDismiss"));
+                    break;
+                case "forceStacking":
+                    if (options.getBoolean("forceStacking")) {
+                        builder.stackingBehavior(StackingBehavior.ALWAYS);
+                    }
+                    break;
+                case "stackingBehavior":
+                    switch(options.getString("stackingBehavior")) {
+                        case "always":
+                          builder.stackingBehavior(StackingBehavior.ALWAYS);
+                          break;
+                        case "adaptive":
+                          builder.stackingBehavior(StackingBehavior.ADAPTIVE);
+                          break;
+                        case "never":
+                          builder.stackingBehavior(StackingBehavior.NEVER);
+                          break;
+                    }
                     break;
                 case "alwaysCallSingleChoiceCallback":
                     if (options.getBoolean("alwaysCallSingleChoiceCallback")) {
