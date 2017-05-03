@@ -1,11 +1,10 @@
 package com.aakashns.reactnativedialogs.modules;
 
 import android.content.DialogInterface;
-import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.view.View;
 
 import com.afollestad.materialdialogs.DialogAction;
-import com.afollestad.materialdialogs.GravityEnum;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.simplelist.MaterialSimpleListAdapter;
 import com.afollestad.materialdialogs.simplelist.MaterialSimpleListItem;
@@ -26,7 +25,6 @@ public class DialogAndroid extends ReactContextBaseJavaModule {
     public String getName() {
         return "DialogAndroid";
     }
-
 
     public DialogAndroid(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -51,20 +49,11 @@ public class DialogAndroid extends ReactContextBaseJavaModule {
                 case "positiveText":
                     builder.positiveText(options.getString("positiveText"));
                     break;
-                case "positiveColor":
-                    builder.positiveColor(Color.parseColor(options.getString("positiveColor")));
-                    break;
                 case "negativeText":
                     builder.negativeText(options.getString("negativeText"));
                     break;
-                case "negativeColor":
-                    builder.negativeColor(Color.parseColor(options.getString("negativeColor")));
-                    break;
                 case "neutralText":
                     builder.neutralText(options.getString("neutralText"));
-                    break;
-                case "neutralColor":
-                    builder.neutralColor(Color.parseColor(options.getString("neutralColor")));
                     break;
                 case "items":
                     ReadableArray arr = options.getArray("items");
@@ -76,9 +65,6 @@ public class DialogAndroid extends ReactContextBaseJavaModule {
                     break;
                 case "autoDismiss":
                     builder.autoDismiss(options.getBoolean("autoDismiss"));
-                    break;
-                case "forceStacking":
-                    builder.forceStacking(options.getBoolean("forceStacking"));
                     break;
                 case "alwaysCallSingleChoiceCallback":
                     if (options.getBoolean("alwaysCallSingleChoiceCallback")) {
@@ -102,42 +88,6 @@ public class DialogAndroid extends ReactContextBaseJavaModule {
                     builder.progressIndeterminateStyle(
                             options.getBoolean("progressIndeterminateStyle"));
                     break;
-                case "buttonsGravity":
-                    String bg = options.getString("buttonsGravity");
-                    if( bg.equals("start") )
-                        builder.buttonsGravity(GravityEnum.START);
-                    else if( bg.equals("end") )
-                        builder.buttonsGravity(GravityEnum.END);
-                    else
-                        builder.buttonsGravity(GravityEnum.CENTER);
-                    break;
-                case "itemsGravity":
-                    String ig = options.getString("itemsGravity");
-                    if( ig.equals("start") )
-                        builder.itemsGravity(GravityEnum.START);
-                    else if( ig.equals("end") )
-                        builder.itemsGravity(GravityEnum.END);
-                    else
-                        builder.itemsGravity(GravityEnum.CENTER);
-                    break;
-                case "titleGravity":
-                    String tg = options.getString("titleGravity");
-                    if( tg.equals("start") )
-                        builder.titleGravity(GravityEnum.START);
-                    else if( tg.equals("end") )
-                        builder.titleGravity(GravityEnum.END);
-                    else
-                        builder.titleGravity(GravityEnum.CENTER);
-                    break;
-                case "rtl":
-                    if( options.getBoolean("rtl") ) {
-                        builder.titleGravity(GravityEnum.END);
-                        builder.itemsGravity(GravityEnum.END);
-                        builder.contentGravity(GravityEnum.END);
-                        builder.buttonsGravity(GravityEnum.START);
-                        builder.btnStackedGravity(GravityEnum.START);
-                    }
-                    break;
                 case "progress":
                     ReadableMap progress = options.getMap("progress");
                     boolean indeterminate = progress.hasKey("indeterminate") &&
@@ -152,10 +102,32 @@ public class DialogAndroid extends ReactContextBaseJavaModule {
                         // Determinate progress bar not supported currently
                         // TODO : Implement determinate progress bar
                     }
+                    break;
+                case "icon":
+                    ReadableMap icon = options.getMap("icon");
+                    String uri = icon != null ? icon.getString("uri") : null;
+                    builder.icon(getDrawableByName(uri));
+                    break;
             }
         }
 
         return builder;
+    }
+    
+    private int getDrawableResourceByName(String name) {
+        return getReactApplicationContext().getResources().getIdentifier(
+            name,
+            "drawable",
+            getReactApplicationContext().getPackageName());
+    }
+
+    private Drawable getDrawableByName(String name) {
+        int drawableResId = getDrawableResourceByName(name);
+        if (drawableResId != 0) {
+            return getReactApplicationContext().getResources().getDrawable(drawableResId);
+        } else {
+            return null;
+        }
     }
 
     MaterialDialog.Builder mBuilder;
@@ -342,7 +314,15 @@ public class DialogAndroid extends ReactContextBaseJavaModule {
     MaterialDialog simple;
     @ReactMethod
     public void list(ReadableMap options, final Callback callback) {
-        final MaterialSimpleListAdapter simpleListAdapter = new MaterialSimpleListAdapter(getCurrentActivity());
+        final MaterialSimpleListAdapter simpleListAdapter = new MaterialSimpleListAdapter(new MaterialSimpleListAdapter.Callback() {
+            @Override
+            public void onMaterialListItemSelected(MaterialDialog dialog, int index, MaterialSimpleListItem item) {
+                callback.invoke(index, item.getContent());
+                if (simple != null) {
+                    simple.dismiss();
+                }
+            }
+        });
 
         ReadableArray arr = options.getArray("items");
         for(int i = 0; i < arr.size(); i++){
@@ -353,15 +333,7 @@ public class DialogAndroid extends ReactContextBaseJavaModule {
 
         final MaterialDialog.Builder adapter = new MaterialDialog.Builder(getCurrentActivity())
                 .title(options.hasKey("title") ? options.getString("title") : "")
-                .adapter(simpleListAdapter, new MaterialDialog.ListCallback() {
-                    @Override
-                    public void onSelection(MaterialDialog dialog, View itemView, int which, CharSequence text) {
-                        callback.invoke(which, text);
-                        if (simple != null) {
-                            simple.dismiss();
-                        }
-                    }
-                })
+                .adapter(simpleListAdapter, null)
                 .autoDismiss(true);
 
         UiThreadUtil.runOnUiThread(new Runnable() {
